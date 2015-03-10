@@ -1,0 +1,42 @@
+#!/bin/bash
+
+#################################
+# Copy files to destined folder #
+#################################
+# DONE: make this script executable from any directory to support easy analysis
+current_wd=${PWD##*/}
+
+loop='true'
+while [ $loop == 'true' ]; do
+    rsync -aP jhaux@hueter.iup.uni-heidelberg.de:/media/Ext_Hx_2TB/Measurements/$current_wd ~/Desktop/Bachelorarbeit/Measurements/
+    #         ^--------------------------¬                                                   ^
+    #       ^-------------¬              |                                                   |
+    #      ^              |              |                                                   |
+    #      do everything   Progress?     copy from...                                        copy to...
+
+
+    ####################################
+    # Make nice videos out of the pics #
+    ####################################
+    # TO DO: - include flatfield command
+    #        - all the real analysis
+
+    python ~/bin/python/get_results_v2.py 0
+    #                                        ^
+    #                                        reference frame
+
+
+    ###################################
+    # if wanted loop and do all again #
+    ###################################
+    # TO DO: -
+    #        -
+
+    loop='false'
+
+    if [ $1 == '-l' ]; then
+        loop='true'
+        sleep $(( 5 * 60 ))  # wait 5 minutes before starting again
+    fi
+
+done

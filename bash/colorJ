@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#################################
+# Copy files to destined folder #
+#################################
+# DONE: make this script executable from any directory to support easy analysis
+current_wd=${PWD##*/}
+
+####################################
+# Make nice videos out of the pics #
+####################################
+# TO DO: - include flatfield command
+#        - all the real analysis
+
+if [ ! -d ./color ]; then
+    mkdir color
+fi
+
+python ~/bin/python/get_results_v3.py 0
+#                                        ^
+#                                        reference frame
+
+avconv -f image2 -i ./color/*.png -r 25 -s WxH color.avi
+
