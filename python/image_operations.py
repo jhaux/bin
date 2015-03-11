@@ -42,8 +42,8 @@ def global_difference(path_to_images, ref, nref, normpatch, darkframe='NONE', ro
 
     # load reference frame for substraction and normalization, if wanted rotated
     if rot:
-        reference = jim.rotate_90(cv2.imread(allPictureNames[ref]), 0)
-        norm_ref  = jim.rotate_90(cv2.imread(allPictureNames[nref]),0)
+        reference = jim.rotate_90(cv2.imread(allPictureNames[ ref]), 0)
+        norm_ref  = jim.rotate_90(cv2.imread(allPictureNames[nref]), 0)
     else:
         reference = cv2.imread(allPictureNames[ ref])
         norm_ref  = cv2.imread(allPictureNames[nref])
@@ -55,8 +55,10 @@ def global_difference(path_to_images, ref, nref, normpatch, darkframe='NONE', ro
         reference -= darkframe
 
     # adjust intensity of the reference frame for substraction
-    # reference = normalize_Intensity(norm_ref,reference, normpatch)
+    reference = normalize_Intensity(norm_ref,reference, normpatch)
 
+    glob_min =  10000000. # initialize value for the global minimum of all pics
+    glob_max = -10000000. # initialize value for the global maximum of all pics
 
     print "GLOBAL_DIFFERENCE: loading and adjusting images..."
     # create an array where all images can be stored in
@@ -80,9 +82,19 @@ def global_difference(path_to_images, ref, nref, normpatch, darkframe='NONE', ro
 
         # Do the substraction
         diff = image.astype('float') - reference.astype('float')
+        if diff.min() < glob_min:
+            glob_min = diff.min()
+        if diff.max() > glob_max:
+            glob_max = diff.max()
 
         # store the results in the above created array to pass them back
         allDifferences[i] = diff
+
+    # set the smallest value to zero
+    for image, i in zip(allDifferences, np.arange(allDifferences.shape[0])):
+        image -= glob_min
+        image *= 100/(glob_max-glob_min)
+        allDifferences[i] = image
 
     return allDifferences
 

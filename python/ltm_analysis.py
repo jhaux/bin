@@ -93,21 +93,6 @@ def wavelength_analysis(path_to_data, reference, norm_reference, patch, norm_pat
     Dif_630 = imop.global_difference(path_to_data + '/' + '630_nm', ref=reference, nref=norm_reference, normpatch=norm_patch, darkframe=mean_dark, rot=True)
     Dif_450 = imop.global_difference(path_to_data + '/' + '450_nm', ref=reference, nref=norm_reference, normpatch=norm_patch, darkframe=mean_dark, rot=True)
 
-    if storepics:
-        print 'storing false color images'
-
-        if not os.path.isdir(path_to_data + '/' + 'color_630'):   # see if the directories already exist, else create them
-            os.makedirs(path_to_data + '/' + 'color_630')
-        if not os.path.isdir(path_to_data + '/' + 'color_450'):
-            os.makedirs(path_to_data + '/' + 'color_450')
-
-        print '=> 630nm...'
-        for image, i in zip(Dif_630, np.arange(len(all630s))):
-            imop.show_as_cmap(image, title=jim.get_timestamp(all630s[i]), savename=path_to_data + '/' + 'color_630' + '/' + str(i), lower_border=-20, upper_border=40)
-        print '=> 450nm...'
-        for image, i in zip(Dif_450, np.arange(len(all450s[0]))):
-            imop.show_as_cmap(image, title=jim.get_timestamp(all450s[i]), savename=path_to_data + '/' + 'color_450' + '/' + str(i))
-
     print 'writing data to .csv-files'
     intensities_630 = np.ndarray(shape=(len(Dif_630), patch[1] - patch[0] + 1)) # plus 1 for timestep storage
     for image, i in zip(Dif_630, np.arange(len(intensities_630))):
@@ -121,13 +106,29 @@ def wavelength_analysis(path_to_data, reference, norm_reference, patch, norm_pat
         intensities_450[i,1:] = get_raw_intensities(np.mean(image, axis=-1), patch)
     np.savetxt(path_to_data + '/' + 'intensities_450.csv', intensities_450, delimiter='\t')
 
+    if storepics:
+        print 'storing false color images'
+
+        if not os.path.isdir(path_to_data + '/' + 'color_630'):   # see if the directories already exist, else create them
+            os.makedirs(path_to_data + '/' + 'color_630')
+        if not os.path.isdir(path_to_data + '/' + 'color_450'):
+            os.makedirs(path_to_data + '/' + 'color_450')
+
+        print '=> 630nm...'
+        for image, i in zip(Dif_630, np.arange(len(all630s))):
+            imop.show_as_cmap(image, title=jim.get_timestamp(all630s[i]), savename=path_to_data + '/' + 'color_630' + '/' + str(i), lower_border=0, upper_border=100)
+        print '=> 450nm...'
+        for image, i in zip(Dif_450, np.arange(len(all450s[0]))):
+            imop.show_as_cmap(image, title=jim.get_timestamp(all450s[i]), savename=path_to_data + '/' + 'color_450' + '/' + str(i))
+
     print '\nWavelength-analysis finished!'
+
     return intensities_630, intensities_450
 
 
 def main():
-    # path_to_data = u'/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_2015-02-02_14-03-19/measurement_2015-02-02_14-03-19/images'
-    path_to_data = u'/Users/jhaux/Desktop/Bachelorarbeit/Measurements/BCG_nopor_Test01/measurement_2015-02-02_14-03-19/images'
+    path_to_data = u'/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_2015-02-02_14-03-19/measurement_2015-02-02_14-03-19/images'
+    # path_to_data = u'/Users/jhaux/Desktop/Bachelorarbeit/Measurements/BCG_nopor_Test01/measurement_2015-02-02_14-03-19/images'
 
     patch = (643,1779,1550,2000)
     norm_patch = (700,800,1400,1500)
@@ -137,7 +138,7 @@ def main():
     wavelength_analysis( path_to_data,
                         reference=reference, patch=patch,
                         norm_reference=norm_reference, norm_patch=norm_patch,
-                        storepics=False)
+                        storepics=True)
 
 
 if __name__ == '__main__':
