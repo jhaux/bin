@@ -13,17 +13,33 @@ from PIL import Image
 import os
 
 
-def normalize_Intensity(image_ref, image, patch):
+def normalize_Intensity(image_ref, image, patch, patch_2=(0,0,0,0), norm_crit='linear'):
     ''' retruns a normalized version of image_norm to fit the intensity of image_ref'''
     x_1,x_2, y_1,y_2 = patch
+    a_1,a_2, b_1,b_2 = patch_2
 
-    norm_factor =  np.mean(np.asarray(image, dtype='float')[y_1:y_2, x_1:x_2]) \
-                   /                                                           \
-                   np.mean(np.asarray(image, dtype='float')[y_1:y_2, x_1:x_2])
+    mean_ref_1 = np.mean(np.asarray(image_ref, dtype='float')[y_1:y_2, x_1:x_2])
+    mean_im_1  = np.mean(np.asarray(image,     dtype='float')[y_1:y_2, x_1:x_2])
+    mean_ref_2 = np.mean(np.asarray(image_ref, dtype='float')[b_1:b_2, a_1:a_2])
+    mean_im_2  = np.mean(np.asarray(image,     dtype='float')[b_1:b_2, a_1:a_2])
 
-    image_norm = np.asarray(image, dtype='float') * float(norm_factor)
+    if norm_crit == 'linear':
+        norm_factor =  float(mean_ref_1) / float(mean_im_1)
+        image_norm = np.asarray(image, dtype='float') * float(norm_factor)
+        return image_norm
 
-    return  image_norm
+    elif norm_crit == 'offset':
+        offset = float(mean_im_1) - float(mean_ref_1)
+        image_off = np.asarray(image, dtype='float') - float(offset)
+        return  image_off
+
+    elif norm_crit == 'combined':
+        offset = (float(mean_ref_1) * float(mean_im_2) - float(mean_ref_2) * float(mean_im_1)) \
+                 / (float(mean_im_2) - float(mean_im_1))
+        factor = (float(mean_ref_1) - float(mean_ref_2)) \
+                 / (float(mean_im_2) - float(mean_im_1))
+        image_comb = factor * image + offset
+        return image_comb
 
 def difference(image_1, image_2):
     ''' Substract two images and return the difference valued from 0 to 100'''
@@ -32,9 +48,12 @@ def difference(image_1, image_2):
     dif *= 100 / dif.max()
     return dif
 
-def global_difference(path_to_images, ref, nref, normpatch, darkframe='NONE', rot=False):
+def global_difference(path_to_images, ref, nref, normpatch, normpatch_2=(0,0,0,0), darkframe='NONE', rot=False, norm_crit='linear', start=0, end=None, step=1):
     '''Take a bunch of images, substract a reference image from all of them
-    and then shift and normalize (0,...,100) all pictures according to the overall min and max values
+    and then shift and normalize (0,...,100) all pictures according to the overall min and max values as well as
+    the specified patch that is supposed to stay at the same intensity throughout the whole measurement.
+    Also do the same, exept that the images are divided by the reference.
+    Both results are stored in the picture arrays allDifferences and allQuotients
     '''
 
     # store all picture names in one array
@@ -55,16 +74,18 @@ def global_difference(path_to_images, ref, nref, normpatch, darkframe='NONE', ro
         reference -= darkframe
 
     # adjust intensity of the reference frame for substraction
-    reference = normalize_Intensity(norm_ref,reference, normpatch)
+    reference = normalize_Intensity(norm_ref,reference, normpatch, patch_2=normpatch_2, norm_crit=norm_crit)
 
     glob_min =  10000000. # initialize value for the global minimum of all pics
     glob_max = -10000000. # initialize value for the global maximum of all pics
+    quot_min, quot_max = glob_min, glob_max # and again for the quotient stuff
 
     print "GLOBAL_DIFFERENCE: loading and adjusting images..."
     # create an array where all images can be stored in
     allDifferences = np.ndarray(shape=(len(allPictureNames), reference.shape[0], reference.shape[1], reference.shape[2]))
+    allQuotients   = np.ndarray(shape=(len(allPictureNames), reference.shape[0], reference.shape[1], reference.shape[2]))
     # Take all differences and store them in the already created array
-    for image_name, i in zip(allPictureNames, np.arange(len(allPictureNames))):
+    for image_name, i in zip(allPictureNames, np.arange(len(allPictureNames))[start:end][::step]):
         # load images, if wanted rotated
         if rot:
             image = jim.rotate_90(cv2.imread(image_name), 0)
@@ -78,7 +99,7 @@ def global_difference(path_to_images, ref, nref, normpatch, darkframe='NONE', ro
             image -= darkframe # substract darkcurrent from each picture
 
         # now adjust the intensity of the images!
-        image = normalize_Intensity(norm_ref, image, normpatch)
+        image = normalize_Intensity(norm_ref, image, normpatch, patch_2=normpatch_2, norm_crit=norm_crit)
 
         # Do the substraction
         diff = image.astype('float') - reference.astype('float')
@@ -90,13 +111,31 @@ def global_difference(path_to_images, ref, nref, normpatch, darkframe='NONE', ro
         # store the results in the above created array to pass them back
         allDifferences[i] = diff
 
+        # Do the division
+        quot = reference.astype('float') / image.astype('float')
+        if quot.min() < quot_min:
+            quot_min = diff.min()
+        if quot.max() > quot_max:
+            quot_max = diff.max()
+
+        # store the results in the above created array to pass them back
+        allQuotients[i] = quot
+
     # set the smallest value to zero
     for image, i in zip(allDifferences, np.arange(allDifferences.shape[0])):
         image -= glob_min
         image *= 100/(glob_max-glob_min)
         allDifferences[i] = image
 
-    return allDifferences
+    # set the smallest value to zero
+    for image, i in zip(allQuotients, np.arange(allQuotients.shape[0])):
+        image -= quot_min
+        image *= 100/(quot_max-quot_min)
+        allQuotients[i] = image
+
+    return allDifferences, allQuotients
+
+
 
 def global_norm(images, patch, normref):
     '''Adjust intensities for all images of one array to the intensity of the image given by the index "normref".
@@ -130,13 +169,13 @@ def mean_image(path_to_images, rot=False):
 
     return mean
 
-def show_as_cmap(image, title, savename='show_as_cmap', lower_border=-500, upper_border=500, gauss=True):
+def show_as_cmap(image, title, savename='show_as_cmap', lower_border=0, upper_border=100, gauss=True):
     X,Y,Z = image.shape
     x   = np.arange(Y)  # Don't ask me, but it has to be this way. Otherwise the dimensions don't work.
     y   = np.arange(X)
     z   = np.mean(image, axis=-1) # Take mean of RGB channels. All three should be the same!
 
-    levels = MaxNLocator(nbins=100).tick_values(lower_border, upper_border)
+    levels = MaxNLocator(nbins=5*(upper_border-lower_border)).tick_values(lower_border, upper_border)
     cmap = plt.get_cmap('jet')
     norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
     aspect = float(Y)/float(X)
