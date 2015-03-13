@@ -9,6 +9,7 @@ import matplotlib.cm as cmx
 from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
 import scipy.ndimage as ndimage
+from scipy.interpolate import interp1d
 import os
 import datetime
 
@@ -259,6 +260,16 @@ def finger_count(intensities):
 
     return result_array, n_fingers
 
+def time_diffs(timesteps):
+        t_0 = datetime.datetime.fromtimestamp(timesteps[0]).replace(microsecond=0)
+
+        time_names = []
+        for i in np.arange(len(timesteps)):
+            t = datetime.datetime.fromtimestamp(timesteps[i]).replace(microsecond=0)
+            time_names.append(t - t_0)
+
+        return time_names
+
 def plot_fingercount(all_data, step=1, start=0, end=-1, handle=25000, clean_crit='amplitude', cell_width=0.23, cmap_name='Greys', alpha=0.4):
     timesteps, intensities, pixels, meters = format_data(all_data[start:end][::step])
 
@@ -376,7 +387,44 @@ def plot_fingers_in_picture(path_to_data, data_fingers,
 
     print '\nWe are finished with the 630nm stuff!'
 
+def plot_finger_growth(data_fingers, parts=(0,None)):
+    '''Assuming all fingers grow with the same rate, also their mean length grows with that rate.'''
+    timesteps, intensities, pixels, meters = format_data(data_fingers)#[start:end][::step])
 
+    timenames = time_diffs(timesteps)
+    dt = timesteps[1] - timesteps[0]
+    # dt /= 10**6
+    mean_lengths = [np.array([]) for i in np.arange(len(parts)-1)]
+    growths      = [np.array([]) for i in np.arange(len(parts)-1)]
+    for i in np.arange(len(parts) - 1):
+        start = parts[i]
+        end   = parts[i+1]
+        used_ints = intensities[:,start:end]
+        mean_lengths[i] = [np.mean(timestep_ints[timestep_ints > 0]) for timestep_ints in used_ints] # first iterate over all timesteps, then take the average
+        growths[i]      = np.zeros(len(mean_lengths[i]))
+        growths[i][1:]  = np.diff(mean_lengths[i]) / dt
+
+    print len(timesteps), len(mean_lengths[2]), len(growths[2])
+    fig = plt.figure()
+    ax1 = fig.add_subplot(121)
+    ax2 = fig.add_subplot(122)
+
+    for data, grow, i in zip(mean_lengths, growths, np.arange(len(mean_lengths))):
+        ax1.plot(timesteps, data, label=str(i))
+        ax2.plot(timesteps, grow, label=str(i))
+
+    ax1.set_title('mean fingerlength')
+    ax1.set_xlabel('time [h:m:s]')
+    ax1.set_ylabel('mean_length [pixel]')
+    ax1.set_xticklabels(timenames)
+    ax1.legend()
+    ax2.set_title('mean differences')
+    ax2.set_xlabel('time [h:m:s]')
+    ax2.set_ylabel('mean difference [pixel/s]')
+    ax2.set_xticklabels(timenames)
+    ax2.legend()
+
+    plt.show()
 
 def main():
     path_to_data = u'/Users/jhaux/Desktop/Bachelorarbeit/Measurements/BCG_nopor_Test01/measurement_2015-02-02_14-03-19/images'
@@ -399,9 +447,13 @@ def main():
     patch = ( 643, 1779, 1550, 2000) # this part of the image will be analysed
     np1   = (1190, 1310,   60,  160) # there is a paper on the background
     np2   = ( 500,  600,  300,  400) # an area that is not to bright
-    plot_fingers_in_picture(path_to_data, data_fingers,patch=(643, 1779, 1550, 2000), norm_patch=np1, norm_patch_2=np2,
-                            start=1,end=32, step=10, save=True, show=True,
-                            savename=path_to_data+'/linear/Differences_with_fingers/')
+    # plot_fingers_in_picture(path_to_data, data_fingers,patch=(643, 1779, 1550, 2000), norm_patch=np1, norm_patch_2=np2,
+    #                         start=1,end=32, step=10, save=True, show=True,
+    #                         savename=path_to_data+'/linear/Differences_with_fingers/')
+
+    timesteps, intensities, pixels, meters = format_data(data_fingers)#[start:end][::step])
+    sep = int(len(intensities[0])/3)
+    plot_finger_growth(data_fingers[5:16], parts=(0,sep,sep*2,None))
 
     return 0
 

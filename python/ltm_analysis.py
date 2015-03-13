@@ -161,10 +161,11 @@ def finger_length(image, patch, threshold, handle=150, clean_criterium='waveleng
 
 def wavelength_analysis(path_to_data, reference, norm_reference,
                         patch, norm_patch, norm_patch_2,
-                        storepics=False, norm_crit='linear',
-                        do630=True, do450=False,
-                        do_intensities=True, do_fingers=True, threshold=60,
-                        plot_fingerlength=True):
+                        storepics=False, norm_crit='linear', patch_view=True,
+                        do630=True, do450=False, diff=True, quot=True,
+                        do_intensities=True, do_fingers=True, threshold_diff=60, threshold_quot=40,
+                        lower_diff=0, upper_diff=100, lower_quot=0, upper_quot=100,
+                        plot_fingerlength=True, show_finger_bars=True, bar_col='white', bar_alph=0.6, bar_w=10):
     '''Using a given dataset this function performs an analysis of the evolution of the wavelengths occuring during
     the fingering phase of the Hele-Shaw experiment. The resulting data is written into a file.
       path_to_data: string containing the path to the folder containing the images of interest e.g. .../images
@@ -187,32 +188,38 @@ def wavelength_analysis(path_to_data, reference, norm_reference,
             os.makedirs(path_to_data + '/' + norm_crit)
 
         if do_intensities:
-            intensities_diff_630 = np.ndarray(shape=(len(Diff_630), patch[1] - patch[0] + 1)) # plus 1 for timestep storage
-            intensities_quot_630 = np.ndarray(shape=(len(Quot_630), patch[1] - patch[0] + 1)) # patch[0] = x_1, p[1] = x_2 => x_length
-            for image, i in zip(Diff_630, np.arange(len(intensities_diff_630))):
-                intensities_diff_630[i,0]  = jim.get_timestamp(all630s[i], human_readable=False) # timestep in unixtime
-                intensities_diff_630[i,1:] = get_raw_intensities(np.mean(image, axis=-1), patch) # waves!
-
-            for image, i in zip(Quot_630, np.arange(len(intensities_quot_630))):
-                intensities_quot_630[i,0]  = jim.get_timestamp(all630s[i], human_readable=False) # timestep in unixtime
-                intensities_quot_630[i,1:] = get_raw_intensities(np.mean(image, axis=-1), patch) # waves again!!!
+            if diff:
+                intensities_diff_630 = np.ndarray(shape=(len(Diff_630), patch[1] - patch[0] + 1)) # plus 1 for timestep storage
+                for image, i in zip(Diff_630, np.arange(len(intensities_diff_630))):
+                    intensities_diff_630[i,0]  = jim.get_timestamp(all630s[i], human_readable=False) # timestep in unixtime
+                    intensities_diff_630[i,1:] = get_raw_intensities(np.mean(image, axis=-1), patch) # waves!
+                np.savetxt(path_to_data + '/' + norm_crit + '/' + 'intensities_diff_630.csv', intensities_diff_630, delimiter='\t')
+            if quot:
+                intensities_quot_630 = np.ndarray(shape=(len(Quot_630), patch[1] - patch[0] + 1)) # patch[0] = x_1, p[1] = x_2 => x_length
+                for image, i in zip(Quot_630, np.arange(len(intensities_quot_630))):
+                    intensities_quot_630[i,0]  = jim.get_timestamp(all630s[i], human_readable=False) # timestep in unixtime
+                    intensities_quot_630[i,1:] = get_raw_intensities(np.mean(image, axis=-1), patch) # waves again!!!
+                np.savetxt(path_to_data + '/' + norm_crit + '/' + 'intensities_quot_630.csv', intensities_quot_630, delimiter='\t')
 
             print 'writing 630nm data to .csv-files'
-            np.savetxt(path_to_data + '/' + norm_crit + '/' + 'intensities_diff_630.csv', intensities_diff_630, delimiter='\t')
-            np.savetxt(path_to_data + '/' + norm_crit + '/' + 'intensities_quot_630.csv', intensities_quot_630, delimiter='\t')
+
         if do_fingers:
-            fingers_diff_630 = np.zeros(shape=(len(Diff_630), patch[1] - patch[0] + 1))
-            fingers_quot_630 = np.zeros(shape=(len(Quot_630), patch[1] - patch[0] + 1))
-            for image, i in zip(Diff_630, np.arange(len(fingers_diff_630))):
-                fingers_diff_630[i,0]  = jim.get_timestamp(all630s[i], human_readable=False) # timestep in unixtime
-                fingers_diff_630[i,1:] = finger_length(np.mean(image, axis=-1), patch, threshold=threshold) # finger_length!
+            if diff:
+                fingers_diff_630 = np.zeros(shape=(len(Diff_630), patch[1] - patch[0] + 1))
+                for image, i in zip(Diff_630, np.arange(len(fingers_diff_630))):
+                    fingers_diff_630[i,0]  = jim.get_timestamp(all630s[i], human_readable=False) # timestep in unixtime
+                    fingers_diff_630[i,1:] = finger_length(np.mean(image, axis=-1), patch, threshold=threshold_diff) # finger_length!
+                np.savetxt(path_to_data + '/' + norm_crit + '/' + 'fingers_diff_630.csv', fingers_diff_630, delimiter='\t')
 
-            for image, i in zip(Quot_630, np.arange(len(fingers_diff_630))):
-                fingers_quot_630[i,0] = jim.get_timestamp(all630s[i], human_readable=False) # timestep in unixtime
-                fingers_quot_630[i,1:] = finger_length(np.mean(image, axis=-1), patch, threshold=threshold) # finger_length!!!
+            if quot:
+                fingers_quot_630 = np.zeros(shape=(len(Quot_630), patch[1] - patch[0] + 1))
+                for image, i in zip(Quot_630, np.arange(len(fingers_diff_630))):
+                    fingers_quot_630[i,0] = jim.get_timestamp(all630s[i], human_readable=False) # timestep in unixtime
+                    fingers_quot_630[i,1:] = finger_length(np.mean(image, axis=-1), patch, threshold=threshold_quot) # finger_length!!!
+                np.savetxt(path_to_data + '/' + norm_crit + '/' + 'fingers_quot_630.csv', fingers_quot_630, delimiter='\t')
 
-            np.savetxt(path_to_data + '/' + norm_crit + '/' + 'fingers_diff_630.csv', fingers_diff_630, delimiter='\t')
-            np.savetxt(path_to_data + '/' + norm_crit + '/' + 'fingers_quot_630.csv', fingers_quot_630, delimiter='\t')
+        else:
+            show_finger_bars=False
 
 
         if storepics:
@@ -226,81 +233,39 @@ def wavelength_analysis(path_to_data, reference, norm_reference,
             if not os.path.isdir(path_to_data + '/' + norm_crit + '/color_630/Quotients'):
                 os.makedirs(path_to_data + '/' + norm_crit + '/color_630/Quotients')
 
+            if not os.path.isdir(path_to_data + '/' + norm_crit + '/color_630/Differences_with_fingers'):
+                os.makedirs(path_to_data + '/' + norm_crit + '/color_630/Differences_with_fingers')
+            if not os.path.isdir(path_to_data + '/' + norm_crit + '/color_630/Quotients_with_fingers'):
+                os.makedirs(path_to_data + '/' + norm_crit + '/color_630/Quotients_with_fingers')
 
-            print '=> 630nm diff...'
-            for image, i in zip(Diff_630, np.arange(len(all630s))):
-                if plot_fingerlength:
-                    x1, x2, y1, y2 = patch
-                    xdim, ydim = x2-x1, y2-y1
-                    overlay_patch = np.zeros((ydim,xdim,3))
-                    for j, val in zip(np.arange(len(fingers_diff_630[i,1:])), fingers_diff_630[i,1:]):
-                        for k in np.arange(val):
-                            overlay_patch[k,j-3,0] = 100
-                            overlay_patch[k,j-3,1] = 100
-                            overlay_patch[k,j-3,2] = 100
-                            overlay_patch[k,j-2,0] = 100
-                            overlay_patch[k,j-2,1] = 100
-                            overlay_patch[k,j-2,2] = 100
-                            overlay_patch[k,j-1,0] = 100
-                            overlay_patch[k,j-1,1] = 100
-                            overlay_patch[k,j-1,2] = 100
-                            overlay_patch[k,j,0]   = 100
-                            overlay_patch[k,j,1]   = 100
-                            overlay_patch[k,j,2]   = 100
-                            overlay_patch[k,j+1,0] = 100
-                            overlay_patch[k,j+1,1] = 100
-                            overlay_patch[k,j+1,2] = 100
-                            overlay_patch[k,j+2,0] = 100
-                            overlay_patch[k,j+2,1] = 100
-                            overlay_patch[k,j+2,2] = 100
-                            overlay_patch[k,j+3,0] = 100
-                            overlay_patch[k,j+3,1] = 100
-                            overlay_patch[k,j+3,2] = 100
 
-                  # add it to the picture
-                    image[y1:y2,x1:x2] += overlay_patch
+            if diff:
+                print '=> 630nm diff...'
+                for image, i in zip(Diff_630, np.arange(len(all630s))):
+                    if show_finger_bars: # Save both: with and without bars!
+                        imop.show_as_cmap(image, title=jim.get_timestamp(all630s[i]), savename=path_to_data + '/' + norm_crit + '/color_630/Differences_with_fingers/' + str(i),
+                                          lower_border=lower_diff, upper_border=upper_diff, gauss=True, patch_view=patch_view,
+                                          show_finger_bars=True, patch=patch, intensities=fingers_diff_630[i,1:], bar_col=bar_col, bar_alph=bar_alph, bar_w=bar_w)
 
-                imop.show_as_cmap(image, title=jim.get_timestamp(all630s[i]), savename=path_to_data + '/' + norm_crit + '/color_630/Differences/' + str(i),
-                                  lower_border=50, upper_border=80, gauss=True)
-            print '=> 630nm quot...'
-            for image, i in zip(Quot_630, np.arange(len(all630s))):
-                if plot_fingerlength:
-                    x1, x2, y1, y2 = patch
-                    xdim, ydim = x2-x1, y2-y1
-                    overlay_patch = np.zeros((ydim,xdim,3))
-                    for j, val in zip(np.arange(4,len(fingers_diff_630[i,5:-5])), fingers_diff_630[i,5:-5]):
-                        for k in np.arange(val):
-                            overlay_patch[k,j-3,0] = 100
-                            overlay_patch[k,j-3,1] = 100
-                            overlay_patch[k,j-3,2] = 100
-                            overlay_patch[k,j-2,0] = 100
-                            overlay_patch[k,j-2,1] = 100
-                            overlay_patch[k,j-2,2] = 100
-                            overlay_patch[k,j-1,0] = 100
-                            overlay_patch[k,j-1,1] = 100
-                            overlay_patch[k,j-1,2] = 100
-                            overlay_patch[k,j,0]   = 100
-                            overlay_patch[k,j,1]   = 100
-                            overlay_patch[k,j,2]   = 100
-                            overlay_patch[k,j+1,0] = 100
-                            overlay_patch[k,j+1,1] = 100
-                            overlay_patch[k,j+1,2] = 100
-                            overlay_patch[k,j+2,0] = 100
-                            overlay_patch[k,j+2,1] = 100
-                            overlay_patch[k,j+2,2] = 100
-                            overlay_patch[k,j+3,0] = 100
-                            overlay_patch[k,j+3,1] = 100
-                            overlay_patch[k,j+3,2] = 100
+                    imop.show_as_cmap(image, title=jim.get_timestamp(all630s[i]), savename=path_to_data + '/' + norm_crit + '/color_630/Differences/' + str(i),
+                                      lower_border=lower_diff, upper_border=upper_diff, gauss=True, patch_view=patch_view,
+                                      show_finger_bars=False, patch=patch, intensities=None, bar_col=bar_col, bar_alph=bar_alph, bar_w=bar_w)
+            if quot:
+                print '=> 630nm quot...'
+                for image, i in zip(Quot_630, np.arange(len(all630s))):
+                    if show_finger_bars:
+                        imop.show_as_cmap(image, title=jim.get_timestamp(all630s[i]), savename=path_to_data + '/' + norm_crit + '/color_630/Quotients_with_fingers/' + str(i),
+                                          lower_border=lower_quot, upper_border=upper_quot, gauss=True, patch_view=patch_view,
+                                          show_finger_bars=True, patch=patch, intensities=fingers_diff_630[i,1:], bar_col=bar_col, bar_alph=bar_alph, bar_w=bar_w)
 
-                  # add it to the picture
-                    image[y1:y2,x1:x2] += overlay_patch
-
-                imop.show_as_cmap(image, title=jim.get_timestamp(all630s[i]), savename=path_to_data + '/' + norm_crit + '/color_630/Quotients/' + str(i),
-                                  lower_border=50, upper_border=80, gauss=True)
+                    imop.show_as_cmap(image, title=jim.get_timestamp(all630s[i]), savename=path_to_data + '/' + norm_crit + '/color_630/Quotients/' + str(i),
+                                      lower_border=lower_quot, upper_border=upper_quot, gauss=True, patch_view=patch_view,
+                                      show_finger_bars=False, patch=patch, intensities=None, bar_col=bar_col, bar_alph=bar_alph, bar_w=bar_w)
 
         print '\nWe are finished with the 630nm stuff!'
 
     if do450:
+        # Everything inside this ifstatment is NOT up to date!
         # now do vereything again for 450nm!
         all450s = jim.listdir_nohidden(path_to_data + '/' + '450_nm')
 
@@ -379,21 +344,53 @@ def main():
     # path_to_data = u'/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_BCG_150309/measurement_BCG_150309/images/'
     path_to_data = u'/Users/jhaux/Desktop/Bachelorarbeit/Measurements/BCG_nopor_Test01/measurement_2015-02-02_14-03-19/images'
     path_to_data_2 = u'/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_2015-02-02_14-03-19/measurement_2015-02-02_14-03-19/images'
-    path_to_data_3 = u'/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_2015-02-02_14-03-19/measurement_2015-02-02_14-03-19/images'
-    path_to_data_4 = u'/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_2015-02-02_14-03-19/measurement_2015-02-02_14-03-19/images'
+    path_to_data_3 = u'/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_BCG_150309/measurement_BCG_150309/images'
+    path_to_data_4 = u'/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_BCG_150310/measurement_BCG_150310/images'
 
-    patch = (643, 1779, 1550, 2000) # this part of the image will be analysed
-    patch_data_2 = (443, 1500, 1443, 2150)
-    norm_patch   = (1190, 1310,  60, 160) # there is a paper on the background
-    norm_patch_2 = ( 500,  600, 300, 400) # an area that is not to bright
+    paths = (path_to_data_2, path_to_data_3, path_to_data_4)
+
+    patch = (643, 1779, 1540, 2000) # this part of the image will be analysed
+    patch_data_3 = (443, 1500, 1443, 2150)
+    patch_data_4 = (410, 1560, 630, 2000)
+
+    norm_patch_01 = (1190, 1310,  60, 160) # there is a paper on the background
+    norm_patch_02 = ( 500,  600, 300, 400) # an area that is not to bright
+    norm_patch_21 = (1190, 1310,  60, 160)
+    norm_patch_22 = ( 500,  600, 300, 400)
+    norm_patch_31 = (1190, 1310,  60, 160)
+    norm_patch_32 = ( 500,  600, 300, 400)
+
     reference = 0
     norm_reference = 0
 
-    wavelength_analysis( path_to_data,
-                        reference=reference, patch=patch,
-                        norm_reference=norm_reference, norm_patch=norm_patch, norm_patch_2=norm_patch_2, norm_crit='linear',
-                        storepics=True, do_intensities=False, do_fingers=True, threshold=56)
+    # wavelength_analysis( path_to_data,
+    #                     reference=reference, patch=patch,
+    #                     norm_reference=norm_reference, norm_patch=norm_patch_01, norm_patch_2=norm_patch_02, norm_crit='linear',
+    #                     storepics=True, diff=False, quot=True, do_intensities=False, do_fingers=True, threshold_diff=59,
+    #                     lower_diff=50, upper_diff=80, lower_quot=0, upper_quot=50,
+    #                     show_finger_bars =True, bar_alph=1., bar_col='black', bar_w=6)
 
+    # print 'data_2:'
+    # wavelength_analysis(path_to_data_2,
+    #                 reference=reference, patch=patch,
+    #                 norm_reference=norm_reference, norm_patch=norm_patch_01, norm_patch_2=norm_patch_02, norm_crit='linear',
+    #                 storepics=True, diff=True, quot=False, do_intensities=True, do_fingers=False, threshold_diff=50,
+    #                 lower_diff=40, upper_diff=80,
+    #                 show_finger_bars =False, bar_alph=1., bar_col='black', bar_w=6)
+
+    print 'data_3:'
+    wavelength_analysis(path_to_data_3,
+                    reference=reference, patch=patch_data_3,
+                    norm_reference=norm_reference, norm_patch=norm_patch_21, norm_patch_2=norm_patch_22, norm_crit='linear',
+                    storepics=True, diff=True, quot=False, do_intensities=True, do_fingers=False, threshold_diff=59,
+                    lower_diff=40, upper_diff=80,
+                    show_finger_bars =True, bar_alph=1., bar_col='black', bar_w=6)
+    print 'data_4:'
+    wavelength_analysis(path_to_data_4,
+                    reference=reference, patch=patch_data_4,
+                    norm_reference=norm_reference, norm_patch=norm_patch_31, norm_patch_2=norm_patch_32, norm_crit='linear',
+                    storepics=True, diff=True, quot=False, do_intensities=True, do_fingers=True, threshold_diff=59,
+                    show_finger_bars =True, bar_alph=1., bar_col='black', bar_w=6)
 
 if __name__ == '__main__':
     main()

@@ -169,7 +169,9 @@ def mean_image(path_to_images, rot=False):
 
     return mean
 
-def show_as_cmap(image, title, savename='show_as_cmap', lower_border=0, upper_border=100, gauss=True):
+def show_as_cmap(image, title, savename='show_as_cmap', lower_border=0, upper_border=100, gauss=True, patch_view=True,
+                 show_finger_bars=True,
+                 patch=(0,0,100,100), intensities=(0,0), bar_col='white', bar_alph=0.6, bar_w=10):
     X,Y,Z = image.shape
     x   = np.arange(Y)  # Don't ask me, but it has to be this way. Otherwise the dimensions don't work.
     y   = np.arange(X)
@@ -178,18 +180,30 @@ def show_as_cmap(image, title, savename='show_as_cmap', lower_border=0, upper_bo
     levels = MaxNLocator(nbins=5*(upper_border-lower_border)).tick_values(lower_border, upper_border)
     cmap = plt.get_cmap('jet')
     norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
-    aspect = float(Y)/float(X)
+    if patch_view:
+        aspect = (float(patch[1])-float(patch[0]))/(float(patch[3])-float(patch[2]))
+    else:
+        aspect = float(Y)/float(X)
     xdim, ydim = int(aspect*10.), 10
     # print X, Y, aspect, xdim, ydim
 
     fig1 = plt.figure(figsize=(xdim,ydim))
-    plt.subplot(1, 1, 1)
+    ax = plt.subplot(1, 1, 1)
     if gauss:
         z = ndimage.gaussian_filter(z, sigma=2.0, order=0)
     im = plt.pcolormesh(x, y, z, cmap=cmap, norm=norm, shading='gaussian')
     plt.colorbar()
     # set the limits of the plot to the limits of the data
-    plt.axis([x.min(), x.max(), y.max(), y.min()])
+    if show_finger_bars:
+        x1, x2, y1, y2 = patch
+        for val, i in zip(intensities, np.arange(len(intensities))):
+            if val != 0:
+                ax.add_patch(Rectangle((x1 + i-int(bar_w/2), y1),bar_w, val, color=bar_col, alpha=bar_alph))
+    if patch_view:
+        limits = (patch[0], patch[1], patch[3], patch[2])
+        plt.axis(limits)
+    else:
+        plt.axis([x.min(), x.max(), y.max(), y.min()])
     plt.title(title)
 
     fig1.savefig(savename)
