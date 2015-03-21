@@ -48,6 +48,13 @@ def difference(image_1, image_2):
     dif *= 100 / dif.max()
     return dif
 
+def quotient(image_1, image_2):
+    ''' Substract two images and return the difference valued from 0 to 100'''
+    dif = image_1.astype('float') / image_2.astype('float')
+    dif -= dif.min()
+    dif *= 100 / dif.max()
+    return dif
+
 def global_difference(path_to_images, ref, nref, normpatch, normpatch_2=(0,0,0,0), darkframe='NONE', rot=False, norm_crit='linear', start=0, end=None, step=1):
     '''Take a bunch of images, substract a reference image from all of them
     and then shift and normalize (0,...,100) all pictures according to the overall min and max values as well as
