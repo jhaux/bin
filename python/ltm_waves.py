@@ -1,4 +1,5 @@
 __author__ = 'jhaux'
+# -*- coding: utf8 -*-
 
 import cv2
 import numpy as np
@@ -387,12 +388,15 @@ def plot_fingers_in_picture(path_to_data, data_fingers,
 
     print '\nWe are finished with the 630nm stuff!'
 
-def plot_finger_growth(data_fingers, parts=(0,None)):
+def plot_finger_growth(savename, data_fingers, parts=(0,None), px2cm=None, all_Files=None, xlims=(0,None), cmap='cool'):
     '''Assuming all fingers grow with the same rate, also their mean length grows with that rate.'''
     timesteps, intensities, pixels, meters = format_data(data_fingers)#[start:end][::step])
-
-    timenames = time_diffs(timesteps)
-    dt = timesteps[1] - timesteps[0]
+    x_min, x_max = xlims
+    if all_Files == None:
+        timenames = time_diffs(timesteps)
+        dt = timesteps[1] - timesteps[0]
+    else:
+        timenames = [jim.get_timestamp(t)[-8:] for t in all_Files]
     # dt /= 10**6
     mean_lengths = [np.array([]) for i in np.arange(len(parts)-1)]
     growths      = [np.array([]) for i in np.arange(len(parts)-1)]
@@ -400,31 +404,47 @@ def plot_finger_growth(data_fingers, parts=(0,None)):
         start = parts[i]
         end   = parts[i+1]
         used_ints = intensities[:,start:end]
-        mean_lengths[i] = [np.mean(timestep_ints[timestep_ints > 0]) for timestep_ints in used_ints] # first iterate over all timesteps, then take the average
+        mean_lengths[i] = [px2cm * np.mean(timestep_ints[timestep_ints > 0]) for timestep_ints in used_ints] # first iterate over all timesteps, then take the average
         growths[i]      = np.zeros(len(mean_lengths[i]))
-        growths[i][1:]  = np.diff(mean_lengths[i]) / dt
+        if i == 0:
+            dt = 0
+        else:
+            dt = timesteps[i] - timesteps[i-1]
+            growths[i][1:]  = np.diff(mean_lengths[i]) / dt
 
-    print len(timesteps), len(mean_lengths[2]), len(growths[2])
+    print len(timesteps), len(mean_lengths[0]), len(growths[0])
     fig = plt.figure()
-    ax1 = fig.add_subplot(121)
-    ax2 = fig.add_subplot(122)
+    ax1 = fig.add_subplot(111)
+    # ax2 = fig.add_subplot(122)
 
+    colors = scalar_cmap(mean_lengths, cmap_name=cmap)
     for data, grow, i in zip(mean_lengths, growths, np.arange(len(mean_lengths))):
-        ax1.plot(timesteps, data, label=str(i))
-        ax2.plot(timesteps, grow, label=str(i))
+        if px2cm == None:
+            ax1.plot(timesteps, data, label=str(i), c=colors[i])
+            # ax2.plot(timesteps, grow, label=str(i))
+        else:
+            ax1.plot(timesteps, data, label=str(i), c=colors[i])
+            # ax2.plot(timesteps, grow, label=str(i))
+        print data
 
-    ax1.set_title('mean fingerlength')
-    ax1.set_xlabel('time [h:m:s]')
-    ax1.set_ylabel('mean_length [pixel]')
-    ax1.set_xticklabels(timenames)
-    ax1.legend()
-    ax2.set_title('mean differences')
-    ax2.set_xlabel('time [h:m:s]')
-    ax2.set_ylabel('mean difference [pixel/s]')
-    ax2.set_xticklabels(timenames)
-    ax2.legend()
+    ax1.set_title(u'Mittlere Fingerlänge')
+    ax1.set_xlabel(u'Zeit')
+    if px2cm == None:
+        ax1.set_ylabel(u'Mittlere Fingerlänge $[cm]$')
+        # ax2.set_ylabel('mean difference [pixel/s]')
+    else:
+        ax1.set_ylabel(u'Mittlere Fingerlänge $[cm]$')
+        # ax2.set_ylabel('mean difference [cm/s]')
+    ax1.set_xticklabels(timenames, rotation=45)
+    ax1.set_xlim(timesteps[x_min], timesteps[x_max])
+    ax1.legend(loc=2)
+    # ax2.set_title('mean differences')
+    # ax2.set_xlabel('time [h:m:s]')
+    # ax2.set_xticklabels(timenames, rotation=45)
+    # ax2.legend()
 
-    plt.show()
+    # plt.show()
+    fig.savefig(savename, dpi=300, bbox_inches='tight')
 
 def main():
     path_to_data = u'/Users/jhaux/Desktop/Bachelorarbeit/Measurements/BCG_nopor_Test01/measurement_2015-02-02_14-03-19/images'
