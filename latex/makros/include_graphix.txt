@@ -1,0 +1,15 @@
+% in preambel einfügen z.B. per \import{/home/johannes/bin/latex/makros/}{include_graphix.txt}.
+% dann Abhängigkeiten: import (s.o.)
+
+\newcommand{\graph}[3][missing_graph.eps]{
+  \begin{figure}[H]
+      \centering
+      \includegraphics[width=\linewidth]{#1}
+      \caption{\textit{#2}}
+      \label{#3}
+  \end{figure}
+}
+
+\newcommand{\todo}[1]{
+  \textbf{\textcolor{red}{#1}}
+}

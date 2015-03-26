@@ -239,4 +239,4 @@ def normalize( image, reference, patch):
     return output
 
 def listdir_nohidden(path):
-        return glob.glob(os.path.join(path, '*'))
+        return sorted(glob.glob(os.path.join(path, '*')))

@@ -1,0 +1,7 @@
+% in preambel per \input{include_graphix} einfügen.
+
+\newcommand{\graph}[2][missing_graph]{
+	\begin{figure}
+		\includegraphics
+	\end{figure}
+}
