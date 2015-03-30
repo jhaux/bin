@@ -276,15 +276,31 @@ def easy_cmap(image):
     plt.imshow(image, cmap='jet')
     plt.show()
 
-def plot_patch(im, patch):
+def plot_patch(im, patch,color = 'red', alpha=0.4):
     '''helps finding the right patch you want to use in your picture!'''
     fig = plt.figure()
     a = fig.add_subplot(111)
     a.imshow(im)
     x,y = patch[0],patch[2]
     w,h = patch[1] - patch[0], patch[3] - patch[2]
-    a.add_patch(Rectangle((x,y),w,h,facecolor='grey', alpha=0.4))
+    a.add_patch(Rectangle((x,y), w, h, facecolor=color, alpha=alpha))
     plt.show()
+
+def plot_patches(im, patches, color='red', alpha=0.4, save=False, savename='welliwelliwellthen.png'):
+    '''helps finding the right patches you want to use in your picture!'''
+    fig = plt.figure()
+    a = fig.add_subplot(111)
+    a.imshow(im)
+    for patch in patches:
+        x,y = patch[0],patch[2]
+        w,h = patch[1] - patch[0], patch[3] - patch[2]
+        a.add_patch(Rectangle((x,y), w, h, facecolor=color, alpha=alpha))
+    plt.xticks(())
+    plt.yticks(())
+    if save:
+        fig.savefig(savename, dpi=300, bbox_inches='tight')
+    else:
+        plt.show()
 
 def show_1(im_1):
     fig = plt.figure()
@@ -316,19 +332,21 @@ def show_3(im_1, im_2, im_3):
 # ======================================================================================================================
 
 def main():
-    # image_path     = '/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_2015-02-02_14-03-19/measurement_2015-02-02_14-03-19/images/630_nm/measurement_2015-02-02_14-03-19_1422884274992310.ppm'
+    image_path     = '/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_2015-02-02_14-03-19/measurement_2015-02-02_14-03-19/images/630_nm/measurement_2015-02-02_14-03-19_1422884274992310.ppm'
     # image_ref_path = '/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_2015-02-02_14-03-19/measurement_2015-02-02_14-03-19/images/630_nm/measurement_2015-02-02_14-03-19_1422882250253063.ppm'
     # save_name = 'savior.png'
-    image_path     = '/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_2014-12-17_15-50-16/measurement_2014-12-17_15-50-16/images/630_nm/measurement_2014-12-17_15-50-16_1420202334725190.ppm'
-    image_ref_path = '/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_2014-12-17_15-50-16/measurement_2014-12-17_15-50-16/images/630_nm/measurement_2014-12-17_15-50-16_1418891073390205.ppm'
-    save_name = 'savior.png'
+    # image_path     = '/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_2014-12-17_15-50-16/measurement_2014-12-17_15-50-16/images/630_nm/measurement_2014-12-17_15-50-16_1420202334725190.ppm'
+    # image_ref_path = '/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_2014-12-17_15-50-16/measurement_2014-12-17_15-50-16/images/630_nm/measurement_2014-12-17_15-50-16_1418891073390205.ppm'
+    # save_name = 'savior.png'
 
 
 
-    concentration_colormap(image_path=image_path, image_ref_path=image_ref_path, save_name=save_name,
-                           invert=True,
-                           clim_bottom=0.40, clim_top=0.63
-                           )
-
+    # concentration_colormap(image_path=image_path, image_ref_path=image_ref_path, save_name=save_name,
+    #                        invert=True,
+    #                        clim_bottom=0.40, clim_top=0.63
+    #                        )
+    save = u'/Users/jhaux/Desktop/Bachelorarbeit/Measurements/measurement_2015-02-02_14-03-19/measurement_2015-02-02_14-03-19/images/cell_patches.pdf'
+    patches=((643, 1779, 1545, 2000), (1190, 1310, 250, 370))
+    plot_patches(jim.rotate_90(cv2.imread(image_path), 0), patches=patches, color='r', alpha=0.3, save=True, savename=save)
 if __name__ == '__main__':
     main()
