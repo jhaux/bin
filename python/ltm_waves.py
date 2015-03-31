@@ -26,7 +26,12 @@ def format_time(time):
     return datetime.datetime.fromtimestamp(time).strftime('%Y-%m-%d %H:%M:%S')
 
 def dt2str(t1, t2):
-    return datetime.datetime.fromtimestamp(t2 - t1).strftime('%H:%M:%S')
+    timestring = datetime.datetime.fromtimestamp(t2 - t1).strftime('%H:%M:%S')
+    s = list(timestring)
+    hour = float(s[1]) - 1
+    s[1] = str(hour)[0]
+    timestring = "".join(s)
+    return timestring
 
 def format_data(all_data, cell_width=0.23):
     '''Standard operations to get the wanted information out of the previously stored wavelength-data files'''
@@ -396,7 +401,9 @@ def plot_finger_growth(savename, data_fingers, parts=(0,None), px2cm=None, all_F
         timenames = time_diffs(timesteps)
         dt = timesteps[1] - timesteps[0]
     else:
-        timenames = [jim.get_timestamp(t)[-8:] for t in all_Files]
+        times = [jim.get_timestamp(t, human_readable=False) for t in all_Files]
+        t_0=jim.get_timestamp(all_Files[0], human_readable=False)
+        timenames = [dt2str(t_0, t) for t in times]
     # dt /= 10**6
     mean_lengths = [np.array([]) for i in np.arange(len(parts)-1)]
     growths      = [np.array([]) for i in np.arange(len(parts)-1)]
@@ -430,12 +437,13 @@ def plot_finger_growth(savename, data_fingers, parts=(0,None), px2cm=None, all_F
     ax1.set_title(u'Mittlere Fingerlänge')
     ax1.set_xlabel(u'Zeit')
     if px2cm == None:
-        ax1.set_ylabel(u'Mittlere Fingerlänge $[cm]$')
+        ax1.set_ylabel(u'Mittlere Fingerlänge $[px]$')
         # ax2.set_ylabel('mean difference [pixel/s]')
     else:
         ax1.set_ylabel(u'Mittlere Fingerlänge $[cm]$')
         # ax2.set_ylabel('mean difference [cm/s]')
-    ax1.set_xticklabels(timenames, rotation=45)
+    ax1.set_xticklabels(timenames[::5], rotation=45)
+    print jim.get_timestamp(all_Files[x_min]), jim.get_timestamp(all_Files[x_max])
     ax1.set_xlim(timesteps[x_min], timesteps[x_max])
     ax1.legend(loc=2)
     # ax2.set_title('mean differences')
